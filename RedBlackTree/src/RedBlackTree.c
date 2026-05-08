@@ -23,16 +23,16 @@
 
 /* ======================== 内部函数声明 ======================== */
 
-static void rb_rotate_left(struct rb_root *root, struct rb_node *node);
-static void rb_rotate_right(struct rb_root *root, struct rb_node *node);
-static void rb_insert_fixup(struct rb_root *root, struct rb_node *node);
-static void rb_delete_fixup(struct rb_root *root, struct rb_node *parent,
+static void RedBlackTree_rotate_left(struct rb_root *root, struct rb_node *node);
+static void RedBlackTree_rotate_right(struct rb_root *root, struct rb_node *node);
+static void RedBlackTree_insert_fixup(struct rb_root *root, struct rb_node *node);
+static void RedBlackTree_delete_fixup(struct rb_root *root, struct rb_node *parent,
                             struct rb_node *node);
-static void rb_transplant(struct rb_root *root, struct rb_node *u,
+static void RedBlackTree_transplant(struct rb_root *root, struct rb_node *u,
                           struct rb_node *v);
-static struct rb_node *rb_subtree_min(struct rb_node *node);
-static struct rb_node *rb_subtree_max(struct rb_node *node);
-static void rb_destroy_subtree(struct rb_node *node,
+static struct rb_node *RedBlackTree_subtree_min(struct rb_node *node);
+static struct rb_node *RedBlackTree_subtree_max(struct rb_node *node);
+static void RedBlackTree_destroy_subtree(struct rb_node *node,
                                void (*free_fn)(struct rb_node *, void *),
                                void *arg);
 
@@ -40,10 +40,10 @@ static void rb_destroy_subtree(struct rb_node *node,
 /* ======================== 核心操作实现 ======================== */
 
 /**
- * @func        rb_insert
+ * @func        RedBlackTree_insert
  * @brief       向红黑树插入节点
  */
-int rb_insert(struct rb_root *root, struct rb_node *node,
+int RedBlackTree_insert(struct rb_root *root, struct rb_node *node,
               int (*cmp)(struct rb_node *, struct rb_node *, void *),
               void *arg)
 {
@@ -53,7 +53,7 @@ int rb_insert(struct rb_root *root, struct rb_node *node,
     }
 
     /* 初始化新节点为红色 */
-    node->color  = RB_RED;
+    node->color  = REDBLACKTREE_RED;
     node->left   = NULL;
     node->right  = NULL;
     node->parent = NULL;
@@ -61,7 +61,7 @@ int rb_insert(struct rb_root *root, struct rb_node *node,
     /* 空树：直接作为根节点 */
     if (root->rb_node == NULL) {
         root->rb_node = node;
-        root->rb_node->color = RB_BLACK;
+        root->rb_node->color = REDBLACKTREE_BLACK;
         root->count = 1;
         return 0;
     }
@@ -96,16 +96,16 @@ int rb_insert(struct rb_root *root, struct rb_node *node,
     root->count++;
 
     /* 修复红黑树性质 */
-    rb_insert_fixup(root, node);
+    RedBlackTree_insert_fixup(root, node);
 
     return 0;
 }
 
 /**
- * @func        rb_delete
+ * @func        RedBlackTree_delete
  * @brief       从红黑树删除节点
  */
-int rb_delete(struct rb_root *root, struct rb_node *node)
+int RedBlackTree_delete(struct rb_root *root, struct rb_node *node)
 {
     if (root == NULL || node == NULL)
     {
@@ -120,35 +120,32 @@ int rb_delete(struct rb_root *root, struct rb_node *node)
         /* 只有右子节点（或无子节点） */
         child = node->right;
         parent = node->parent;  /* 在 transplant 前保存 parent */
-        rb_transplant(root, node, child);
+        RedBlackTree_transplant(root, node, child);
     } else if (node->right == NULL) {
         /* 只有左子节点 */
         child = node->left;
         parent = node->parent;  /* 在 transplant 前保存 parent */
-        rb_transplant(root, node, child);
+        RedBlackTree_transplant(root, node, child);
     } else {
         /* 有两个子节点：找后继节点 */
-        struct rb_node *successor = rb_subtree_min(node->right);
+        struct rb_node *successor = RedBlackTree_subtree_min(node->right);
         color = successor->color;
         child = successor->right;
 
         if (successor->parent == node) {
             /* 后继是直接右子：后继取代 node 后，child 的父节点就是 successor */
             parent = successor;
-            if (child != NULL) {
-                child->parent = successor;
-            }
         } else {
             /* 后继更深：保存后继的父节点（在 transplant 前保存） */
             parent = successor->parent;
-            rb_transplant(root, successor, child);
+            RedBlackTree_transplant(root, successor, child);
             successor->right = node->right;
             if (successor->right != NULL) {
                 successor->right->parent = successor;
             }
         }
 
-        rb_transplant(root, node, successor);
+        RedBlackTree_transplant(root, node, successor);
         successor->left = node->left;
         if (successor->left != NULL) {
             successor->left->parent = successor;
@@ -164,18 +161,18 @@ int rb_delete(struct rb_root *root, struct rb_node *node)
     root->count--;
 
     /* 如果删除的是黑色节点，需要修复 */
-    if (color == RB_BLACK) {
-        rb_delete_fixup(root, parent, child);
+    if (color == REDBLACKTREE_BLACK) {
+        RedBlackTree_delete_fixup(root, parent, child);
     }
 
     return 0;
 }
 
 /**
- * @func        rb_search
+ * @func        RedBlackTree_search
  * @brief       在红黑树中查找节点
  */
-struct rb_node *rb_search(const struct rb_root *root, struct rb_node *key,
+struct rb_node *RedBlackTree_search(const struct rb_root *root, struct rb_node *key,
                            int (*cmp)(struct rb_node *, struct rb_node *, void *),
                            void *arg)
 {
@@ -200,13 +197,19 @@ struct rb_node *rb_search(const struct rb_root *root, struct rb_node *key,
 }
 
 /**
- * @func        rb_replace
+ * @func        RedBlackTree_replace
  * @brief       替换树中的节点
  */
-int rb_replace(struct rb_root *root, struct rb_node *old_node,
+int RedBlackTree_replace(struct rb_root *root, struct rb_node *old_node,
                struct rb_node *new_node)
 {
     if (root == NULL || old_node == NULL || new_node == NULL)
+    {
+        return -1;
+    }
+
+    /* old_node 和 new_node 相同时无需替换，避免清除自身指针 */
+    if (old_node == new_node)
     {
         return -1;
     }
@@ -248,36 +251,36 @@ int rb_replace(struct rb_root *root, struct rb_node *old_node,
 /* ======================== 迭代操作实现 ======================== */
 
 /**
- * @func        rb_first
+ * @func        RedBlackTree_first
  * @brief       获取红黑树最小节点
  */
-struct rb_node *rb_first(const struct rb_root *root)
+struct rb_node *RedBlackTree_first(const struct rb_root *root)
 {
     if (root == NULL || root->rb_node == NULL)
     {
         return NULL;
     }
-    return rb_subtree_min(root->rb_node);
+    return RedBlackTree_subtree_min(root->rb_node);
 }
 
 /**
- * @func        rb_last
+ * @func        RedBlackTree_last
  * @brief       获取红黑树最大节点
  */
-struct rb_node *rb_last(const struct rb_root *root)
+struct rb_node *RedBlackTree_last(const struct rb_root *root)
 {
     if (root == NULL || root->rb_node == NULL)
     {
         return NULL;
     }
-    return rb_subtree_max(root->rb_node);
+    return RedBlackTree_subtree_max(root->rb_node);
 }
 
 /**
- * @func        rb_next
+ * @func        RedBlackTree_next
  * @brief       获取后继节点
  */
-struct rb_node *rb_next(const struct rb_node *node)
+struct rb_node *RedBlackTree_next(const struct rb_node *node)
 {
     if (node == NULL)
     {
@@ -286,7 +289,7 @@ struct rb_node *rb_next(const struct rb_node *node)
 
     /* 有右子树：后继是右子树的最小节点 */
     if (node->right != NULL) {
-        return rb_subtree_min(node->right);
+        return RedBlackTree_subtree_min(node->right);
     }
 
     /* 无右子树：向上找第一个"左拐"的祖先 */
@@ -302,10 +305,10 @@ struct rb_node *rb_next(const struct rb_node *node)
 }
 
 /**
- * @func        rb_prev
+ * @func        RedBlackTree_prev
  * @brief       获取前驱节点
  */
-struct rb_node *rb_prev(const struct rb_node *node)
+struct rb_node *RedBlackTree_prev(const struct rb_node *node)
 {
     if (node == NULL)
     {
@@ -314,7 +317,7 @@ struct rb_node *rb_prev(const struct rb_node *node)
 
     /* 有左子树：前驱是左子树的最大节点 */
     if (node->left != NULL) {
-        return rb_subtree_max(node->left);
+        return RedBlackTree_subtree_max(node->left);
     }
 
     /* 无左子树：向上找第一个"右拐"的祖先 */
@@ -333,10 +336,10 @@ struct rb_node *rb_prev(const struct rb_node *node)
 /* ======================== 批量操作实现 ======================== */
 
 /**
- * @func        rb_destroy
+ * @func        RedBlackTree_destroy
  * @brief       销毁红黑树中所有节点
  */
-int rb_destroy(struct rb_root *root,
+int RedBlackTree_destroy(struct rb_root *root,
                void (*free_fn)(struct rb_node *, void *),
                void *arg)
 {
@@ -345,7 +348,7 @@ int rb_destroy(struct rb_root *root,
         return -1;
     }
 
-    rb_destroy_subtree(root->rb_node, free_fn, arg);
+    RedBlackTree_destroy_subtree(root->rb_node, free_fn, arg);
     root->rb_node = NULL;
     root->count = 0;
 
@@ -353,10 +356,10 @@ int rb_destroy(struct rb_root *root,
 }
 
 /**
- * @func        rb_traverse
+ * @func        RedBlackTree_traverse
  * @brief       中序遍历红黑树
  */
-int rb_traverse(const struct rb_root *root,
+int RedBlackTree_traverse(const struct rb_root *root,
                 int (*callback)(struct rb_node *, void *),
                 void *arg)
 {
@@ -365,12 +368,12 @@ int rb_traverse(const struct rb_root *root,
         return -1;
     }
 
-    /* 使用 rb_first/rb_next 进行中序遍历 */
-    struct rb_node *node = rb_first(root);
+    /* 使用 RedBlackTree_first/RedBlackTree_next 进行中序遍历 */
+    struct rb_node *node = RedBlackTree_first(root);
     struct rb_node *next = NULL;
 
     while (node != NULL) {
-        next = rb_next(node);
+        next = RedBlackTree_next(node);
         int ret = callback(node, arg);
         if (ret != 0)
         {
@@ -386,10 +389,10 @@ int rb_traverse(const struct rb_root *root,
 /* ======================== 内部函数实现 ======================== */
 
 /**
- * @func        rb_rotate_left
+ * @func        RedBlackTree_rotate_left
  * @brief       红黑树内部-左旋操作
  */
-static void rb_rotate_left(struct rb_root *root, struct rb_node *node)
+static void RedBlackTree_rotate_left(struct rb_root *root, struct rb_node *node)
 {
     if (root == NULL || node == NULL || node->right == NULL)
     {
@@ -418,10 +421,10 @@ static void rb_rotate_left(struct rb_root *root, struct rb_node *node)
 }
 
 /**
- * @func        rb_rotate_right
+ * @func        RedBlackTree_rotate_right
  * @brief       红黑树内部-右旋操作
  */
-static void rb_rotate_right(struct rb_root *root, struct rb_node *node)
+static void RedBlackTree_rotate_right(struct rb_root *root, struct rb_node *node)
 {
     if (root == NULL || node == NULL || node->left == NULL)
     {
@@ -450,68 +453,68 @@ static void rb_rotate_right(struct rb_root *root, struct rb_node *node)
 }
 
 /**
- * @func        rb_insert_fixup
+ * @func        RedBlackTree_insert_fixup
  * @brief       红黑树内部-插入修复
  */
-static void rb_insert_fixup(struct rb_root *root, struct rb_node *node)
+static void RedBlackTree_insert_fixup(struct rb_root *root, struct rb_node *node)
 {
     if (root == NULL || node == NULL)
     {
         return;
     }
 
-    while (node->parent != NULL && node->parent->color == RB_RED) {
+    while (node->parent != NULL && node->parent->color == REDBLACKTREE_RED) {
         if (node->parent == node->parent->parent->left) {
             struct rb_node *uncle = node->parent->parent->right;
 
-            if (uncle != NULL && uncle->color == RB_RED) {
+            if (uncle != NULL && uncle->color == REDBLACKTREE_RED) {
                 /* Case 1: 叔节点是红色 */
-                node->parent->color = RB_BLACK;
-                uncle->color = RB_BLACK;
-                node->parent->parent->color = RB_RED;
+                node->parent->color = REDBLACKTREE_BLACK;
+                uncle->color = REDBLACKTREE_BLACK;
+                node->parent->parent->color = REDBLACKTREE_RED;
                 node = node->parent->parent;
             } else {
                 if (node == node->parent->right) {
                     /* Case 2: LR 型 */
                     node = node->parent;
-                    rb_rotate_left(root, node);
+                    RedBlackTree_rotate_left(root, node);
                 }
                 /* Case 3: LL 型 */
-                node->parent->color = RB_BLACK;
-                node->parent->parent->color = RB_RED;
-                rb_rotate_right(root, node->parent->parent);
+                node->parent->color = REDBLACKTREE_BLACK;
+                node->parent->parent->color = REDBLACKTREE_RED;
+                RedBlackTree_rotate_right(root, node->parent->parent);
             }
         } else {
             struct rb_node *uncle = node->parent->parent->left;
 
-            if (uncle != NULL && uncle->color == RB_RED) {
+            if (uncle != NULL && uncle->color == REDBLACKTREE_RED) {
                 /* Case 1: 叔节点是红色（镜像） */
-                node->parent->color = RB_BLACK;
-                uncle->color = RB_BLACK;
-                node->parent->parent->color = RB_RED;
+                node->parent->color = REDBLACKTREE_BLACK;
+                uncle->color = REDBLACKTREE_BLACK;
+                node->parent->parent->color = REDBLACKTREE_RED;
                 node = node->parent->parent;
             } else {
                 if (node == node->parent->left) {
                     /* Case 2: RL 型 */
                     node = node->parent;
-                    rb_rotate_right(root, node);
+                    RedBlackTree_rotate_right(root, node);
                 }
                 /* Case 3: RR 型 */
-                node->parent->color = RB_BLACK;
-                node->parent->parent->color = RB_RED;
-                rb_rotate_left(root, node->parent->parent);
+                node->parent->color = REDBLACKTREE_BLACK;
+                node->parent->parent->color = REDBLACKTREE_RED;
+                RedBlackTree_rotate_left(root, node->parent->parent);
             }
         }
     }
 
-    root->rb_node->color = RB_BLACK;
+    root->rb_node->color = REDBLACKTREE_BLACK;
 }
 
 /**
- * @func        rb_transplant
+ * @func        RedBlackTree_transplant
  * @brief       红黑树内部-节点替换（将 v 替换 u 的位置）
  */
-static void rb_transplant(struct rb_root *root, struct rb_node *u,
+static void RedBlackTree_transplant(struct rb_root *root, struct rb_node *u,
                           struct rb_node *v)
 {
     if (root == NULL || u == NULL)
@@ -533,10 +536,10 @@ static void rb_transplant(struct rb_root *root, struct rb_node *u,
 }
 
 /**
- * @func        rb_subtree_min
+ * @func        RedBlackTree_subtree_min
  * @brief       红黑树内部-获取子树最小节点（最左节点）
  */
-static struct rb_node *rb_subtree_min(struct rb_node *node)
+static struct rb_node *RedBlackTree_subtree_min(struct rb_node *node)
 {
     if (node == NULL)
     {
@@ -549,10 +552,10 @@ static struct rb_node *rb_subtree_min(struct rb_node *node)
 }
 
 /**
- * @func        rb_subtree_max
+ * @func        RedBlackTree_subtree_max
  * @brief       红黑树内部-获取子树最大节点（最右节点）
  */
-static struct rb_node *rb_subtree_max(struct rb_node *node)
+static struct rb_node *RedBlackTree_subtree_max(struct rb_node *node)
 {
     if (node == NULL)
     {
@@ -565,13 +568,13 @@ static struct rb_node *rb_subtree_max(struct rb_node *node)
 }
 
 /**
- * @func        rb_delete_fixup
+ * @func        RedBlackTree_delete_fixup
  * @brief       红黑树内部-删除修复
  * @param       root    红黑树根
  * @param       parent  被删除位置的父节点（child 可能为 NULL 时需要）
  * @param       node    需要修复的节点（可能为 NULL）
  */
-static void rb_delete_fixup(struct rb_root *root, struct rb_node *parent,
+static void RedBlackTree_delete_fixup(struct rb_root *root, struct rb_node *parent,
                             struct rb_node *node)
 {
     if (root == NULL)
@@ -579,95 +582,95 @@ static void rb_delete_fixup(struct rb_root *root, struct rb_node *parent,
         return;
     }
 
-    while ((node == NULL || node->color == RB_BLACK) &&
+    while ((node == NULL || node->color == REDBLACKTREE_BLACK) &&
            node != root->rb_node) {
         if (node == parent->left) {
             struct rb_node *sibling = parent->right;
 
-            if (sibling != NULL && sibling->color == RB_RED) {
+            if (sibling != NULL && sibling->color == REDBLACKTREE_RED) {
                 /* Case 1: 兄弟节点是红色 */
-                sibling->color = RB_BLACK;
-                parent->color = RB_RED;
-                rb_rotate_left(root, parent);
+                sibling->color = REDBLACKTREE_BLACK;
+                parent->color = REDBLACKTREE_RED;
+                RedBlackTree_rotate_left(root, parent);
                 sibling = parent->right;
             }
 
             if ((sibling == NULL) ||
-                ((sibling->left == NULL || sibling->left->color == RB_BLACK) &&
-                 (sibling->right == NULL || sibling->right->color == RB_BLACK))) {
+                ((sibling->left == NULL || sibling->left->color == REDBLACKTREE_BLACK) &&
+                 (sibling->right == NULL || sibling->right->color == REDBLACKTREE_BLACK))) {
                 /* Case 2: 兄弟节点的两个子节点都是黑色 */
                 if (sibling != NULL)
                 {
-                    sibling->color = RB_RED;
+                    sibling->color = REDBLACKTREE_RED;
                 }
                 node = parent;
                 parent = node->parent;
             } else {
                 if (sibling->right == NULL ||
-                    sibling->right->color == RB_BLACK) {
+                    sibling->right->color == REDBLACKTREE_BLACK) {
                     /* Case 3: 兄弟节点的右子节点是黑色 */
                     if (sibling->left != NULL)
                     {
-                        sibling->left->color = RB_BLACK;
+                        sibling->left->color = REDBLACKTREE_BLACK;
                     }
-                    sibling->color = RB_RED;
-                    rb_rotate_right(root, sibling);
+                    sibling->color = REDBLACKTREE_RED;
+                    RedBlackTree_rotate_right(root, sibling);
                     sibling = parent->right;
                 }
                 /* Case 4: 兄弟节点的右子节点是红色 */
                 if (sibling != NULL) {
                     sibling->color = parent->color;
-                    parent->color = RB_BLACK;
+                    parent->color = REDBLACKTREE_BLACK;
                     if (sibling->right != NULL)
                     {
-                        sibling->right->color = RB_BLACK;
+                        sibling->right->color = REDBLACKTREE_BLACK;
                     }
-                    rb_rotate_left(root, parent);
+                    RedBlackTree_rotate_left(root, parent);
                 }
                 node = root->rb_node;
             }
         } else {
             struct rb_node *sibling = parent->left;
 
-            if (sibling != NULL && sibling->color == RB_RED) {
+            if (sibling != NULL && sibling->color == REDBLACKTREE_RED) {
                 /* Case 1: 兄弟节点是红色（镜像） */
-                sibling->color = RB_BLACK;
-                parent->color = RB_RED;
-                rb_rotate_right(root, parent);
+                sibling->color = REDBLACKTREE_BLACK;
+                parent->color = REDBLACKTREE_RED;
+                RedBlackTree_rotate_right(root, parent);
                 sibling = parent->left;
             }
 
             if ((sibling == NULL) ||
-                ((sibling->right == NULL || sibling->right->color == RB_BLACK) &&
-                 (sibling->left == NULL || sibling->left->color == RB_BLACK))) {
+                ((sibling->right == NULL || sibling->right->color == REDBLACKTREE_BLACK) &&
+                 (sibling->left == NULL || sibling->left->color == REDBLACKTREE_BLACK))) {
                 /* Case 2: 兄弟节点的两个子节点都是黑色（镜像） */
                 if (sibling != NULL)
                 {
-                    sibling->color = RB_RED;
+                    sibling->color = REDBLACKTREE_RED;
                 }
                 node = parent;
                 parent = node->parent;
             } else {
                 if (sibling->left == NULL ||
-                    sibling->left->color == RB_BLACK) {
+                    sibling->left->color == REDBLACKTREE_BLACK) {
                     /* Case 3: 兄弟节点的左子节点是黑色（镜像） */
                     if (sibling->right != NULL)
                     {
-                        sibling->right->color = RB_BLACK;
+                        sibling->right->color = REDBLACKTREE_BLACK;
                     }
-                    sibling->color = RB_RED;
-                    rb_rotate_left(root, sibling);
+                    sibling->color = REDBLACKTREE_RED;
+                    RedBlackTree_rotate_left(root, sibling);
                     sibling = parent->left;
                 }
                 /* Case 4: 兄弟节点的左子节点是红色（镜像） */
                 if (sibling != NULL) {
                     sibling->color = parent->color;
-                    parent->color = RB_BLACK;
+                    parent->color = REDBLACKTREE_BLACK;
                     if (sibling->left != NULL)
                     {
-                        sibling->left->color = RB_BLACK;
+                        sibling->left->color = REDBLACKTREE_BLACK;
                     }
-                    rb_rotate_right(root, parent);
+                    RedBlackTree_rotate_right(root, parent);
                 }
                 node = root->rb_node;
             }
@@ -675,15 +678,15 @@ static void rb_delete_fixup(struct rb_root *root, struct rb_node *parent,
     }
 
     if (node != NULL) {
-        node->color = RB_BLACK;
+        node->color = REDBLACKTREE_BLACK;
     }
 }
 
 /**
- * @func        rb_destroy_subtree
+ * @func        RedBlackTree_destroy_subtree
  * @brief       红黑树内部-递归销毁子树（后序遍历）
  */
-static void rb_destroy_subtree(struct rb_node *node,
+static void RedBlackTree_destroy_subtree(struct rb_node *node,
                                void (*free_fn)(struct rb_node *, void *),
                                void *arg)
 {
@@ -692,8 +695,8 @@ static void rb_destroy_subtree(struct rb_node *node,
         return;
     }
 
-    rb_destroy_subtree(node->left, free_fn, arg);
-    rb_destroy_subtree(node->right, free_fn, arg);
+    RedBlackTree_destroy_subtree(node->left, free_fn, arg);
+    RedBlackTree_destroy_subtree(node->right, free_fn, arg);
 
     if (free_fn != NULL) {
         free_fn(node, arg);

@@ -7,8 +7,8 @@
  *              Part 2:  查询操作 - count/empty
  *              Part 3:  迭代操作 - first/last/next/prev
  *              Part 4:  替换操作 - replace
- *              Part 5:  遍历宏 - rb_for_each / rb_for_each_safe / rb_for_each_entry
- *              Part 6:  静态初始化 - DEFINE_RB_ROOT
+ *              Part 5:  遍历宏 - RedBlackTree_for_each / RedBlackTree_for_each_safe / RedBlackTree_for_each_entry
+ *              Part 6:  静态初始化 - DEFINE_REDBLACKTREE_ROOT
  *              Part 7:  批量操作 - destroy / traverse
  *              Part 8:  综合测试 - 大规模插入/删除/查找
  *
@@ -109,7 +109,7 @@ static struct my_data *create_data(int value)
     struct my_data *data = (struct my_data *)malloc(sizeof(struct my_data));
     if (data != NULL) {
         data->value = value;
-        rb_init_node(&data->node);
+        RedBlackTree_init_node(&data->node);
     }
     return data;
 }
@@ -124,10 +124,12 @@ static struct my_data *create_data(int value)
  */
 static int my_cmp(struct rb_node *a, struct rb_node *b, void *arg)
 {
-    struct my_data *da = rb_entry(a, struct my_data, node);
-    struct my_data *db = rb_entry(b, struct my_data, node);
+    struct my_data *da = RedBlackTree_entry(a, struct my_data, node);
+    struct my_data *db = RedBlackTree_entry(b, struct my_data, node);
     (void)arg;
-    return da->value - db->value;
+    if (da->value < db->value) return -1;
+    if (da->value > db->value) return 1;
+    return 0;
 }
 
 /**
@@ -140,10 +142,10 @@ static void print_tree(const struct rb_root *root, const char *label)
 {
     struct rb_node *pos;
     printf("  %s: [", label);
-    rb_for_each(pos, root) {
-        struct my_data *d = rb_entry(pos, struct my_data, node);
+    RedBlackTree_for_each(pos, root) {
+        struct my_data *d = RedBlackTree_entry(pos, struct my_data, node);
         printf("%d", d->value);
-        if (rb_next(pos) != NULL)
+        if (RedBlackTree_next(pos) != NULL)
         {
             printf(", ");
         }
@@ -159,19 +161,19 @@ static void print_tree(const struct rb_root *root, const char *label)
 static void free_all_nodes(struct rb_root *root)
 {
     struct rb_node *pos, *n;
-    rb_for_each_safe(pos, n, root) {
-        rb_delete(root, pos);
-        free(rb_entry(pos, struct my_data, node));
+    RedBlackTree_for_each_safe(pos, n, root) {
+        RedBlackTree_delete(root, pos);
+        free(RedBlackTree_entry(pos, struct my_data, node));
     }
 }
 
 /**
  * @func        my_free_fn
- * @brief       rb_destroy 使用的释放回调函数
+ * @brief       RedBlackTree_destroy 使用的释放回调函数
  */
 static void my_free_fn(struct rb_node *node, void *arg)
 {
-    struct my_data *d = rb_entry(node, struct my_data, node);
+    struct my_data *d = RedBlackTree_entry(node, struct my_data, node);
     (void)arg;
     free(d);
 }
@@ -186,22 +188,22 @@ static void my_free_fn(struct rb_node *node, void *arg)
 /**
  * @func         test_basic_operations
  * @brief        测试红黑树基础操作
- * @details      测试 rb_init_root, rb_init_node, rb_insert, rb_delete, rb_search
+ * @details      测试 RedBlackTree_init_root, RedBlackTree_init_node, RedBlackTree_insert, RedBlackTree_delete, RedBlackTree_search
  */
 static void test_basic_operations(void)
 {
     Debug_printx("========== Part 1: Basic Operations ==========");
 
     struct rb_root root;
-    rb_init_root(&root);
+    RedBlackTree_init_root(&root);
 
     /* 测试空树 */
-    TEST_ASSERT(rb_empty(&root), "rb_init_root - empty tree",
+    TEST_ASSERT(RedBlackTree_empty(&root), "RedBlackTree_init_root - empty tree",
                 "tree should be empty after init");
-    TEST_ASSERT(rb_count(&root) == 0, "rb_count - 0",
+    TEST_ASSERT(RedBlackTree_count(&root) == 0, "RedBlackTree_count - 0",
                 "empty tree should have 0 nodes");
 
-    /* rb_insert: 插入 50, 30, 70, 20, 40, 60, 80 */
+    /* RedBlackTree_insert: 插入 50, 30, 70, 20, 40, 60, 80 */
     struct my_data *d50 = create_data(50);
     struct my_data *d30 = create_data(30);
     struct my_data *d70 = create_data(70);
@@ -210,74 +212,74 @@ static void test_basic_operations(void)
     struct my_data *d60 = create_data(60);
     struct my_data *d80 = create_data(80);
 
-    TEST_ASSERT(rb_insert(&root, &d50->node, my_cmp, NULL) == 0,
-                "rb_insert 50 - success", "insert should succeed");
-    TEST_ASSERT(rb_insert(&root, &d30->node, my_cmp, NULL) == 0,
-                "rb_insert 30 - success", "insert should succeed");
-    TEST_ASSERT(rb_insert(&root, &d70->node, my_cmp, NULL) == 0,
-                "rb_insert 70 - success", "insert should succeed");
-    TEST_ASSERT(rb_insert(&root, &d20->node, my_cmp, NULL) == 0,
-                "rb_insert 20 - success", "insert should succeed");
-    TEST_ASSERT(rb_insert(&root, &d40->node, my_cmp, NULL) == 0,
-                "rb_insert 40 - success", "insert should succeed");
-    TEST_ASSERT(rb_insert(&root, &d60->node, my_cmp, NULL) == 0,
-                "rb_insert 60 - success", "insert should succeed");
-    TEST_ASSERT(rb_insert(&root, &d80->node, my_cmp, NULL) == 0,
-                "rb_insert 80 - success", "insert should succeed");
+    TEST_ASSERT(RedBlackTree_insert(&root, &d50->node, my_cmp, NULL) == 0,
+                "RedBlackTree_insert 50 - success", "insert should succeed");
+    TEST_ASSERT(RedBlackTree_insert(&root, &d30->node, my_cmp, NULL) == 0,
+                "RedBlackTree_insert 30 - success", "insert should succeed");
+    TEST_ASSERT(RedBlackTree_insert(&root, &d70->node, my_cmp, NULL) == 0,
+                "RedBlackTree_insert 70 - success", "insert should succeed");
+    TEST_ASSERT(RedBlackTree_insert(&root, &d20->node, my_cmp, NULL) == 0,
+                "RedBlackTree_insert 20 - success", "insert should succeed");
+    TEST_ASSERT(RedBlackTree_insert(&root, &d40->node, my_cmp, NULL) == 0,
+                "RedBlackTree_insert 40 - success", "insert should succeed");
+    TEST_ASSERT(RedBlackTree_insert(&root, &d60->node, my_cmp, NULL) == 0,
+                "RedBlackTree_insert 60 - success", "insert should succeed");
+    TEST_ASSERT(RedBlackTree_insert(&root, &d80->node, my_cmp, NULL) == 0,
+                "RedBlackTree_insert 80 - success", "insert should succeed");
 
-    TEST_ASSERT(!rb_empty(&root), "rb_insert - tree not empty",
+    TEST_ASSERT(!RedBlackTree_empty(&root), "RedBlackTree_insert - tree not empty",
                 "tree should not be empty after inserts");
-    TEST_ASSERT(rb_count(&root) == 7, "rb_count - 7",
+    TEST_ASSERT(RedBlackTree_count(&root) == 7, "RedBlackTree_count - 7",
                 "expected 7 nodes");
 
     /* 重复插入应失败 */
     struct my_data *dup = create_data(50);
-    TEST_ASSERT(rb_insert(&root, &dup->node, my_cmp, NULL) == -1,
-                "rb_insert duplicate - fail",
+    TEST_ASSERT(RedBlackTree_insert(&root, &dup->node, my_cmp, NULL) == -1,
+                "RedBlackTree_insert duplicate - fail",
                 "duplicate insert should fail");
     free(dup);
 
     print_tree(&root, "After inserts: 20, 30, 40, 50, 60, 70, 80");
 
-    /* rb_search: 查找存在的节点 */
+    /* RedBlackTree_search: 查找存在的节点 */
     {
         struct my_data key = { .value = 40 };
-        struct rb_node *found = rb_search(&root, &key.node, my_cmp, NULL);
-        TEST_ASSERT(found != NULL, "rb_search 40 - found",
+        struct rb_node *found = RedBlackTree_search(&root, &key.node, my_cmp, NULL);
+        TEST_ASSERT(found != NULL, "RedBlackTree_search 40 - found",
                     "should find 40");
         if (found) {
-            struct my_data *d = rb_entry(found, struct my_data, node);
-            TEST_ASSERT(d->value == 40, "rb_search 40 - value correct",
+            struct my_data *d = RedBlackTree_entry(found, struct my_data, node);
+            TEST_ASSERT(d->value == 40, "RedBlackTree_search 40 - value correct",
                         "found value should be 40");
         }
     }
 
-    /* rb_search: 查找不存在的节点 */
+    /* RedBlackTree_search: 查找不存在的节点 */
     {
         struct my_data key = { .value = 999 };
-        struct rb_node *found = rb_search(&root, &key.node, my_cmp, NULL);
-        TEST_ASSERT(found == NULL, "rb_search 999 - not found",
+        struct rb_node *found = RedBlackTree_search(&root, &key.node, my_cmp, NULL);
+        TEST_ASSERT(found == NULL, "RedBlackTree_search 999 - not found",
                     "should not find 999");
     }
 
-    /* rb_delete: 删除叶子节点 20 */
-    TEST_ASSERT(rb_delete(&root, &d20->node) == 0,
-                "rb_delete 20 - success", "delete should succeed");
-    TEST_ASSERT(rb_count(&root) == 6, "rb_count after delete - 6",
+    /* RedBlackTree_delete: 删除叶子节点 20 */
+    TEST_ASSERT(RedBlackTree_delete(&root, &d20->node) == 0,
+                "RedBlackTree_delete 20 - success", "delete should succeed");
+    TEST_ASSERT(RedBlackTree_count(&root) == 6, "RedBlackTree_count after delete - 6",
                 "expected 6 nodes");
     free(d20);
 
-    /* rb_delete: 删除有两个子节点的节点 70 */
-    TEST_ASSERT(rb_delete(&root, &d70->node) == 0,
-                "rb_delete 70 - success", "delete should succeed");
-    TEST_ASSERT(rb_count(&root) == 5, "rb_count after delete - 5",
+    /* RedBlackTree_delete: 删除有两个子节点的节点 70 */
+    TEST_ASSERT(RedBlackTree_delete(&root, &d70->node) == 0,
+                "RedBlackTree_delete 70 - success", "delete should succeed");
+    TEST_ASSERT(RedBlackTree_count(&root) == 5, "RedBlackTree_count after delete - 5",
                 "expected 5 nodes");
     free(d70);
 
-    /* rb_delete: 删除根节点 50 */
-    TEST_ASSERT(rb_delete(&root, &d50->node) == 0,
-                "rb_delete 50 (root) - success", "delete should succeed");
-    TEST_ASSERT(rb_count(&root) == 4, "rb_count after delete - 4",
+    /* RedBlackTree_delete: 删除根节点 50 */
+    TEST_ASSERT(RedBlackTree_delete(&root, &d50->node) == 0,
+                "RedBlackTree_delete 50 (root) - success", "delete should succeed");
+    TEST_ASSERT(RedBlackTree_count(&root) == 4, "RedBlackTree_count after delete - 4",
                 "expected 4 nodes");
     free(d50);
 
@@ -288,8 +290,8 @@ static void test_basic_operations(void)
         int expected[] = {30, 40, 60, 80};
         int i = 0;
         struct rb_node *pos;
-        rb_for_each(pos, &root) {
-            struct my_data *d = rb_entry(pos, struct my_data, node);
+        RedBlackTree_for_each(pos, &root) {
+            struct my_data *d = RedBlackTree_entry(pos, struct my_data, node);
             if (d->value != expected[i]) {
                 TEST_FAIL("inorder traversal - order check", "value mismatch");
                 goto cleanup_basic;
@@ -315,52 +317,52 @@ cleanup_basic:
 /**
  * @func         test_query_operations
  * @brief        测试红黑树查询操作
- * @details      测试 rb_count, rb_empty
+ * @details      测试 RedBlackTree_count, RedBlackTree_empty
  */
 static void test_query_operations(void)
 {
     Debug_printx("========== Part 2: Query Operations ==========");
 
-    DEFINE_RB_ROOT(root);
+    DEFINE_REDBLACKTREE_ROOT(root);
 
     /* 空树测试 */
-    TEST_ASSERT(rb_empty(&root), "rb_empty - empty",
+    TEST_ASSERT(RedBlackTree_empty(&root), "RedBlackTree_empty - empty",
                 "new tree should be empty");
-    TEST_ASSERT(rb_count(&root) == 0, "rb_count - 0",
+    TEST_ASSERT(RedBlackTree_count(&root) == 0, "RedBlackTree_count - 0",
                 "empty tree should have 0 nodes");
 
     /* NULL 参数测试 */
-    TEST_ASSERT(rb_empty(NULL) == 1, "rb_empty(NULL) - returns 1",
+    TEST_ASSERT(RedBlackTree_empty(NULL) == 1, "RedBlackTree_empty(NULL) - returns 1",
                 "NULL root should be considered empty");
-    TEST_ASSERT(rb_count(NULL) == 0, "rb_count(NULL) - returns 0",
+    TEST_ASSERT(RedBlackTree_count(NULL) == 0, "RedBlackTree_count(NULL) - returns 0",
                 "NULL root should have 0 count");
 
     /* 插入一个节点 */
     struct my_data *d1 = create_data(100);
-    rb_insert(&root, &d1->node, my_cmp, NULL);
+    RedBlackTree_insert(&root, &d1->node, my_cmp, NULL);
 
-    TEST_ASSERT(!rb_empty(&root), "rb_empty - not empty after insert",
+    TEST_ASSERT(!RedBlackTree_empty(&root), "RedBlackTree_empty - not empty after insert",
                 "tree with 1 node should not be empty");
-    TEST_ASSERT(rb_count(&root) == 1, "rb_count - 1",
+    TEST_ASSERT(RedBlackTree_count(&root) == 1, "RedBlackTree_count - 1",
                 "expected 1 node");
 
     /* 插入多个节点 */
     struct my_data *d2 = create_data(200);
     struct my_data *d3 = create_data(300);
-    rb_insert(&root, &d2->node, my_cmp, NULL);
-    rb_insert(&root, &d3->node, my_cmp, NULL);
+    RedBlackTree_insert(&root, &d2->node, my_cmp, NULL);
+    RedBlackTree_insert(&root, &d3->node, my_cmp, NULL);
 
-    TEST_ASSERT(rb_count(&root) == 3, "rb_count - 3",
+    TEST_ASSERT(RedBlackTree_count(&root) == 3, "RedBlackTree_count - 3",
                 "expected 3 nodes");
 
     /* 删除到空 */
-    rb_delete(&root, &d1->node); free(d1);
-    rb_delete(&root, &d2->node); free(d2);
-    rb_delete(&root, &d3->node); free(d3);
+    RedBlackTree_delete(&root, &d1->node); free(d1);
+    RedBlackTree_delete(&root, &d2->node); free(d2);
+    RedBlackTree_delete(&root, &d3->node); free(d3);
 
-    TEST_ASSERT(rb_empty(&root), "rb_empty - empty after all deletes",
+    TEST_ASSERT(RedBlackTree_empty(&root), "RedBlackTree_empty - empty after all deletes",
                 "tree should be empty after deleting all nodes");
-    TEST_ASSERT(rb_count(&root) == 0, "rb_count - 0 after all deletes",
+    TEST_ASSERT(RedBlackTree_count(&root) == 0, "RedBlackTree_count - 0 after all deletes",
                 "expected 0 nodes");
 
     Debug_printx("---------- Part 2 Done ----------\r\n");
@@ -376,22 +378,22 @@ static void test_query_operations(void)
 /**
  * @func         test_iteration_operations
  * @brief        测试红黑树迭代操作
- * @details      测试 rb_first, rb_last, rb_next, rb_prev
+ * @details      测试 RedBlackTree_first, RedBlackTree_last, RedBlackTree_next, RedBlackTree_prev
  */
 static void test_iteration_operations(void)
 {
     Debug_printx("========== Part 3: Iteration Operations ==========");
 
-    DEFINE_RB_ROOT(root);
+    DEFINE_REDBLACKTREE_ROOT(root);
 
     /* 空树测试 */
-    TEST_ASSERT(rb_first(&root) == NULL, "rb_first - NULL on empty",
+    TEST_ASSERT(RedBlackTree_first(&root) == NULL, "RedBlackTree_first - NULL on empty",
                 "first of empty tree should be NULL");
-    TEST_ASSERT(rb_last(&root) == NULL, "rb_last - NULL on empty",
+    TEST_ASSERT(RedBlackTree_last(&root) == NULL, "RedBlackTree_last - NULL on empty",
                 "last of empty tree should be NULL");
-    TEST_ASSERT(rb_next(NULL) == NULL, "rb_next(NULL) - NULL",
+    TEST_ASSERT(RedBlackTree_next(NULL) == NULL, "RedBlackTree_next(NULL) - NULL",
                 "next of NULL should be NULL");
-    TEST_ASSERT(rb_prev(NULL) == NULL, "rb_prev(NULL) - NULL",
+    TEST_ASSERT(RedBlackTree_prev(NULL) == NULL, "RedBlackTree_prev(NULL) - NULL",
                 "prev of NULL should be NULL");
 
     /* 插入 50, 25, 75, 10, 30, 60, 90 */
@@ -400,109 +402,109 @@ static void test_iteration_operations(void)
     int i;
     for (i = 0; i < 7; i++) {
         nodes[i] = create_data(values[i]);
-        rb_insert(&root, &nodes[i]->node, my_cmp, NULL);
+        RedBlackTree_insert(&root, &nodes[i]->node, my_cmp, NULL);
     }
 
     print_tree(&root, "Tree: 10, 25, 30, 50, 60, 75, 90");
 
-    /* rb_first: 最小节点 */
+    /* RedBlackTree_first: 最小节点 */
     {
-        struct rb_node *first = rb_first(&root);
-        TEST_ASSERT(first != NULL, "rb_first - not NULL",
+        struct rb_node *first = RedBlackTree_first(&root);
+        TEST_ASSERT(first != NULL, "RedBlackTree_first - not NULL",
                     "first should not be NULL");
         if (first) {
-            struct my_data *d = rb_entry(first, struct my_data, node);
-            TEST_ASSERT(d->value == 10, "rb_first - value 10",
+            struct my_data *d = RedBlackTree_entry(first, struct my_data, node);
+            TEST_ASSERT(d->value == 10, "RedBlackTree_first - value 10",
                         "first should be 10");
         }
     }
 
-    /* rb_last: 最大节点 */
+    /* RedBlackTree_last: 最大节点 */
     {
-        struct rb_node *last = rb_last(&root);
-        TEST_ASSERT(last != NULL, "rb_last - not NULL",
+        struct rb_node *last = RedBlackTree_last(&root);
+        TEST_ASSERT(last != NULL, "RedBlackTree_last - not NULL",
                     "last should not be NULL");
         if (last) {
-            struct my_data *d = rb_entry(last, struct my_data, node);
-            TEST_ASSERT(d->value == 90, "rb_last - value 90",
+            struct my_data *d = RedBlackTree_entry(last, struct my_data, node);
+            TEST_ASSERT(d->value == 90, "RedBlackTree_last - value 90",
                         "last should be 90");
         }
     }
 
-    /* rb_next: 从 25 的后继应是 30 */
+    /* RedBlackTree_next: 从 25 的后继应是 30 */
     {
-        struct rb_node *next = rb_next(&nodes[1]->node); /* nodes[1] = 25 */
-        TEST_ASSERT(next != NULL, "rb_next(25) - not NULL",
+        struct rb_node *next = RedBlackTree_next(&nodes[1]->node); /* nodes[1] = 25 */
+        TEST_ASSERT(next != NULL, "RedBlackTree_next(25) - not NULL",
                     "next of 25 should exist");
         if (next) {
-            struct my_data *d = rb_entry(next, struct my_data, node);
-            TEST_ASSERT(d->value == 30, "rb_next(25) - value 30",
+            struct my_data *d = RedBlackTree_entry(next, struct my_data, node);
+            TEST_ASSERT(d->value == 30, "RedBlackTree_next(25) - value 30",
                         "next of 25 should be 30");
         }
     }
 
-    /* rb_prev: 从 60 的前驱应是 50 */
+    /* RedBlackTree_prev: 从 60 的前驱应是 50 */
     {
-        struct rb_node *prev = rb_prev(&nodes[5]->node); /* nodes[5] = 60 */
-        TEST_ASSERT(prev != NULL, "rb_prev(60) - not NULL",
+        struct rb_node *prev = RedBlackTree_prev(&nodes[5]->node); /* nodes[5] = 60 */
+        TEST_ASSERT(prev != NULL, "RedBlackTree_prev(60) - not NULL",
                     "prev of 60 should exist");
         if (prev) {
-            struct my_data *d = rb_entry(prev, struct my_data, node);
-            TEST_ASSERT(d->value == 50, "rb_prev(60) - value 50",
+            struct my_data *d = RedBlackTree_entry(prev, struct my_data, node);
+            TEST_ASSERT(d->value == 50, "RedBlackTree_prev(60) - value 50",
                         "prev of 60 should be 50");
         }
     }
 
-    /* rb_next(last) 应为 NULL */
+    /* RedBlackTree_next(last) 应为 NULL */
     {
-        struct rb_node *last = rb_last(&root);
-        struct rb_node *next = rb_next(last);
-        TEST_ASSERT(next == NULL, "rb_next(last) - NULL",
+        struct rb_node *last = RedBlackTree_last(&root);
+        struct rb_node *next = RedBlackTree_next(last);
+        TEST_ASSERT(next == NULL, "RedBlackTree_next(last) - NULL",
                     "next of last should be NULL");
     }
 
-    /* rb_prev(first) 应为 NULL */
+    /* RedBlackTree_prev(first) 应为 NULL */
     {
-        struct rb_node *first = rb_first(&root);
-        struct rb_node *prev = rb_prev(first);
-        TEST_ASSERT(prev == NULL, "rb_prev(first) - NULL",
+        struct rb_node *first = RedBlackTree_first(&root);
+        struct rb_node *prev = RedBlackTree_prev(first);
+        TEST_ASSERT(prev == NULL, "RedBlackTree_prev(first) - NULL",
                     "prev of first should be NULL");
     }
 
-    /* 使用 rb_next 正向遍历验证顺序 */
+    /* 使用 RedBlackTree_next 正向遍历验证顺序 */
     {
         int expected[] = {10, 25, 30, 50, 60, 75, 90};
         int i = 0;
         struct rb_node *pos;
-        for (pos = rb_first(&root); pos != NULL; pos = rb_next(pos)) {
-            struct my_data *d = rb_entry(pos, struct my_data, node);
+        for (pos = RedBlackTree_first(&root); pos != NULL; pos = RedBlackTree_next(pos)) {
+            struct my_data *d = RedBlackTree_entry(pos, struct my_data, node);
             if (d->value != expected[i]) {
-                TEST_FAIL("rb_next traversal - order check", "value mismatch");
+                TEST_FAIL("RedBlackTree_next traversal - order check", "value mismatch");
                 goto cleanup_iter;
             }
             i++;
         }
-        TEST_ASSERT(i == 7, "rb_next traversal - 7 nodes",
+        TEST_ASSERT(i == 7, "RedBlackTree_next traversal - 7 nodes",
                     "should traverse 7 nodes");
-        TEST_PASS("rb_next traversal - correct order");
+        TEST_PASS("RedBlackTree_next traversal - correct order");
     }
 
-    /* 使用 rb_prev 反向遍历验证顺序 */
+    /* 使用 RedBlackTree_prev 反向遍历验证顺序 */
     {
         int expected[] = {90, 75, 60, 50, 30, 25, 10};
         int i = 0;
         struct rb_node *pos;
-        for (pos = rb_last(&root); pos != NULL; pos = rb_prev(pos)) {
-            struct my_data *d = rb_entry(pos, struct my_data, node);
+        for (pos = RedBlackTree_last(&root); pos != NULL; pos = RedBlackTree_prev(pos)) {
+            struct my_data *d = RedBlackTree_entry(pos, struct my_data, node);
             if (d->value != expected[i]) {
-                TEST_FAIL("rb_prev traversal - order check", "value mismatch");
+                TEST_FAIL("RedBlackTree_prev traversal - order check", "value mismatch");
                 goto cleanup_iter;
             }
             i++;
         }
-        TEST_ASSERT(i == 7, "rb_prev traversal - 7 nodes",
+        TEST_ASSERT(i == 7, "RedBlackTree_prev traversal - 7 nodes",
                     "should traverse 7 nodes");
-        TEST_PASS("rb_prev traversal - correct order");
+        TEST_PASS("RedBlackTree_prev traversal - correct order");
     }
 
 cleanup_iter:
@@ -520,28 +522,28 @@ cleanup_iter:
 /**
  * @func         test_replace_operation
  * @brief        测试红黑树替换操作
- * @details      测试 rb_replace
+ * @details      测试 RedBlackTree_replace
  */
 static void test_replace_operation(void)
 {
     Debug_printx("========== Part 4: Replace Operation ==========");
 
-    DEFINE_RB_ROOT(root);
+    DEFINE_REDBLACKTREE_ROOT(root);
 
     struct my_data *d10 = create_data(10);
     struct my_data *d20 = create_data(20);
     struct my_data *d30 = create_data(30);
-    rb_insert(&root, &d10->node, my_cmp, NULL);
-    rb_insert(&root, &d20->node, my_cmp, NULL);
-    rb_insert(&root, &d30->node, my_cmp, NULL);
+    RedBlackTree_insert(&root, &d10->node, my_cmp, NULL);
+    RedBlackTree_insert(&root, &d20->node, my_cmp, NULL);
+    RedBlackTree_insert(&root, &d30->node, my_cmp, NULL);
 
     print_tree(&root, "Initial: 10, 20, 30");
 
-    /* rb_replace: 用 25 替换 20 */
+    /* RedBlackTree_replace: 用 25 替换 20 */
     struct my_data *d25 = create_data(25);
-    TEST_ASSERT(rb_replace(&root, &d20->node, &d25->node) == 0,
-                "rb_replace - success", "replace should succeed");
-    TEST_ASSERT(rb_count(&root) == 3, "rb_count after replace - 3",
+    TEST_ASSERT(RedBlackTree_replace(&root, &d20->node, &d25->node) == 0,
+                "RedBlackTree_replace - success", "replace should succeed");
+    TEST_ASSERT(RedBlackTree_count(&root) == 3, "RedBlackTree_count after replace - 3",
                 "count should remain 3");
     free(d20);
 
@@ -552,8 +554,8 @@ static void test_replace_operation(void)
         int expected[] = {10, 25, 30};
         int i = 0;
         struct rb_node *pos;
-        rb_for_each(pos, &root) {
-            struct my_data *d = rb_entry(pos, struct my_data, node);
+        RedBlackTree_for_each(pos, &root) {
+            struct my_data *d = RedBlackTree_entry(pos, struct my_data, node);
             if (d->value != expected[i]) {
                 TEST_FAIL("replace - order check", "value mismatch");
                 goto cleanup_replace;
@@ -566,16 +568,16 @@ static void test_replace_operation(void)
     /* 搜索 25 应能找到 */
     {
         struct my_data key = { .value = 25 };
-        struct rb_node *found = rb_search(&root, &key.node, my_cmp, NULL);
-        TEST_ASSERT(found != NULL, "rb_search 25 after replace - found",
+        struct rb_node *found = RedBlackTree_search(&root, &key.node, my_cmp, NULL);
+        TEST_ASSERT(found != NULL, "RedBlackTree_search 25 after replace - found",
                     "should find 25");
     }
 
     /* 搜索 20 应找不到 */
     {
         struct my_data key = { .value = 20 };
-        struct rb_node *found = rb_search(&root, &key.node, my_cmp, NULL);
-        TEST_ASSERT(found == NULL, "rb_search 20 after replace - not found",
+        struct rb_node *found = RedBlackTree_search(&root, &key.node, my_cmp, NULL);
+        TEST_ASSERT(found == NULL, "RedBlackTree_search 20 after replace - not found",
                     "should not find 20");
     }
 
@@ -594,14 +596,14 @@ cleanup_replace:
 /**
  * @func         test_traverse_macros
  * @brief        测试红黑树遍历宏
- * @details      测试 rb_for_each, rb_for_each_reverse, rb_for_each_safe,
- *               rb_for_each_entry, rb_for_each_entry_safe
+ * @details      测试 RedBlackTree_for_each, RedBlackTree_for_each_reverse, RedBlackTree_for_each_safe,
+ *               RedBlackTree_for_each_entry, RedBlackTree_for_each_entry_safe
  */
 static void test_traverse_macros(void)
 {
     Debug_printx("========== Part 5: Traverse Macros ==========");
 
-    DEFINE_RB_ROOT(root);
+    DEFINE_REDBLACKTREE_ROOT(root);
 
     /* 插入 5, 3, 7, 1, 4, 6, 8 */
     int values[] = {5, 3, 7, 1, 4, 6, 8};
@@ -609,93 +611,93 @@ static void test_traverse_macros(void)
     int i;
     for (i = 0; i < 7; i++) {
         nodes[i] = create_data(values[i]);
-        rb_insert(&root, &nodes[i]->node, my_cmp, NULL);
+        RedBlackTree_insert(&root, &nodes[i]->node, my_cmp, NULL);
     }
 
     print_tree(&root, "Tree: 1, 3, 4, 5, 6, 7, 8");
 
-    /* rb_for_each: 正向遍历 */
+    /* RedBlackTree_for_each: 正向遍历 */
     {
         int expected[] = {1, 3, 4, 5, 6, 7, 8};
         int i = 0;
         struct rb_node *pos;
-        rb_for_each(pos, &root) {
-            struct my_data *d = rb_entry(pos, struct my_data, node);
+        RedBlackTree_for_each(pos, &root) {
+            struct my_data *d = RedBlackTree_entry(pos, struct my_data, node);
             if (d->value != expected[i]) {
-                TEST_FAIL("rb_for_each - order check", "value mismatch");
+                TEST_FAIL("RedBlackTree_for_each - order check", "value mismatch");
                 goto cleanup_traverse;
             }
             i++;
         }
-        TEST_ASSERT(i == 7, "rb_for_each - 7 nodes", "expected 7");
-        TEST_PASS("rb_for_each - correct order");
+        TEST_ASSERT(i == 7, "RedBlackTree_for_each - 7 nodes", "expected 7");
+        TEST_PASS("RedBlackTree_for_each - correct order");
     }
 
-    /* rb_for_each_reverse: 反向遍历 */
+    /* RedBlackTree_for_each_reverse: 反向遍历 */
     {
         int expected[] = {8, 7, 6, 5, 4, 3, 1};
         int i = 0;
         struct rb_node *pos;
-        rb_for_each_reverse(pos, &root) {
-            struct my_data *d = rb_entry(pos, struct my_data, node);
+        RedBlackTree_for_each_reverse(pos, &root) {
+            struct my_data *d = RedBlackTree_entry(pos, struct my_data, node);
             if (d->value != expected[i]) {
-                TEST_FAIL("rb_for_each_reverse - order check", "value mismatch");
+                TEST_FAIL("RedBlackTree_for_each_reverse - order check", "value mismatch");
                 goto cleanup_traverse;
             }
             i++;
         }
-        TEST_ASSERT(i == 7, "rb_for_each_reverse - 7 nodes", "expected 7");
-        TEST_PASS("rb_for_each_reverse - correct order");
+        TEST_ASSERT(i == 7, "RedBlackTree_for_each_reverse - 7 nodes", "expected 7");
+        TEST_PASS("RedBlackTree_for_each_reverse - correct order");
     }
 
-    /* rb_for_each_entry: 直接获取宿主结构体 */
+    /* RedBlackTree_for_each_entry: 直接获取宿主结构体 */
     {
         int expected[] = {1, 3, 4, 5, 6, 7, 8};
         int i = 0;
         struct my_data *pos;
-        rb_for_each_entry(pos, &root, node) {
+        RedBlackTree_for_each_entry(pos, &root, node) {
             if (pos->value != expected[i]) {
-                TEST_FAIL("rb_for_each_entry - order check", "value mismatch");
+                TEST_FAIL("RedBlackTree_for_each_entry - order check", "value mismatch");
                 goto cleanup_traverse;
             }
             i++;
         }
-        TEST_ASSERT(i == 7, "rb_for_each_entry - 7 nodes", "expected 7");
-        TEST_PASS("rb_for_each_entry - correct order");
+        TEST_ASSERT(i == 7, "RedBlackTree_for_each_entry - 7 nodes", "expected 7");
+        TEST_PASS("RedBlackTree_for_each_entry - correct order");
     }
 
-    /* rb_for_each_safe: 安全遍历删除所有奇数值 */
+    /* RedBlackTree_for_each_safe: 安全遍历删除所有奇数值 */
     {
         int deleted = 0;
         struct rb_node *pos, *n;
-        rb_for_each_safe(pos, n, &root) {
-            struct my_data *d = rb_entry(pos, struct my_data, node);
+        RedBlackTree_for_each_safe(pos, n, &root) {
+            struct my_data *d = RedBlackTree_entry(pos, struct my_data, node);
             if (d->value % 2 != 0) {
-                rb_delete(&root, pos);
+                RedBlackTree_delete(&root, pos);
                 free(d);
                 deleted++;
             }
         }
-        TEST_ASSERT(deleted == 4, "rb_for_each_safe - deleted 4 odd",
+        TEST_ASSERT(deleted == 4, "RedBlackTree_for_each_safe - deleted 4 odd",
                     "should delete 4 odd numbers (1, 3, 5, 7)");
-        TEST_ASSERT(rb_count(&root) == 3, "rb_for_each_safe - 3 remaining",
+        TEST_ASSERT(RedBlackTree_count(&root) == 3, "RedBlackTree_for_each_safe - 3 remaining",
                     "should have 3 nodes remaining");
 
         print_tree(&root, "After deleting odd: 4, 6, 8");
     }
 
-    /* rb_for_each_entry_safe: 安全遍历删除全部 */
+    /* RedBlackTree_for_each_entry_safe: 安全遍历删除全部 */
     {
         struct my_data *pos, *n;
         int deleted = 0;
-        rb_for_each_entry_safe(pos, n, &root, node) {
-            rb_delete(&root, &pos->node);
+        RedBlackTree_for_each_entry_safe(pos, n, &root, node) {
+            RedBlackTree_delete(&root, &pos->node);
             free(pos);
             deleted++;
         }
-        TEST_ASSERT(deleted == 3, "rb_for_each_entry_safe - deleted 3",
+        TEST_ASSERT(deleted == 3, "RedBlackTree_for_each_entry_safe - deleted 3",
                     "should delete all 3 remaining nodes");
-        TEST_ASSERT(rb_empty(&root), "rb_for_each_entry_safe - tree empty",
+        TEST_ASSERT(RedBlackTree_empty(&root), "RedBlackTree_for_each_entry_safe - tree empty",
                     "tree should be empty");
     }
 
@@ -714,37 +716,37 @@ cleanup_traverse:
 /**
  * @func         test_static_init
  * @brief        测试静态初始化宏
- * @details      测试 DEFINE_RB_ROOT 宏和 RB_ROOT_INIT
+ * @details      测试 DEFINE_REDBLACKTREE_ROOT 宏和 REDBLACKTREE_ROOT_INIT
  */
 static void test_static_init(void)
 {
     Debug_printx("========== Part 6: Static Init ==========");
 
-    /* DEFINE_RB_ROOT 宏 */
-    DEFINE_RB_ROOT(static_root);
-    TEST_ASSERT(rb_empty(&static_root), "DEFINE_RB_ROOT - empty",
-                "DEFINE_RB_ROOT should create empty tree");
-    TEST_ASSERT(rb_count(&static_root) == 0, "DEFINE_RB_ROOT - count 0",
+    /* DEFINE_REDBLACKTREE_ROOT 宏 */
+    DEFINE_REDBLACKTREE_ROOT(static_root);
+    TEST_ASSERT(RedBlackTree_empty(&static_root), "DEFINE_REDBLACKTREE_ROOT - empty",
+                "DEFINE_REDBLACKTREE_ROOT should create empty tree");
+    TEST_ASSERT(RedBlackTree_count(&static_root) == 0, "DEFINE_REDBLACKTREE_ROOT - count 0",
                 "empty tree should have 0 nodes");
 
-    /* RB_ROOT_INIT 宏 */
-    struct rb_root init_root = RB_ROOT_INIT;
-    TEST_ASSERT(rb_empty(&init_root), "RB_ROOT_INIT - empty",
-                "RB_ROOT_INIT should create empty tree");
-    TEST_ASSERT(init_root.rb_node == NULL, "RB_ROOT_INIT - root NULL",
+    /* REDBLACKTREE_ROOT_INIT 宏 */
+    struct rb_root init_root = REDBLACKTREE_ROOT_INIT;
+    TEST_ASSERT(RedBlackTree_empty(&init_root), "REDBLACKTREE_ROOT_INIT - empty",
+                "REDBLACKTREE_ROOT_INIT should create empty tree");
+    TEST_ASSERT(init_root.rb_node == NULL, "REDBLACKTREE_ROOT_INIT - root NULL",
                 "root node should be NULL");
 
     /* 在静态初始化的树上操作 */
     struct my_data *d1 = create_data(42);
-    rb_insert(&static_root, &d1->node, my_cmp, NULL);
-    TEST_ASSERT(rb_count(&static_root) == 1, "static tree - add 1 node",
+    RedBlackTree_insert(&static_root, &d1->node, my_cmp, NULL);
+    TEST_ASSERT(RedBlackTree_count(&static_root) == 1, "static tree - add 1 node",
                 "should have 1 node");
 
-    struct rb_node *first = rb_first(&static_root);
+    struct rb_node *first = RedBlackTree_first(&static_root);
     TEST_ASSERT(first != NULL, "static tree - first not NULL",
                 "first should exist");
     if (first) {
-        struct my_data *d = rb_entry(first, struct my_data, node);
+        struct my_data *d = RedBlackTree_entry(first, struct my_data, node);
         TEST_ASSERT(d->value == 42, "static tree - first value 42",
                     "first value should be 42");
     }
@@ -763,7 +765,7 @@ static void test_static_init(void)
 /**
  * @func         test_batch_operations
  * @brief        测试红黑树批量操作
- * @details      测试 rb_destroy, rb_traverse
+ * @details      测试 RedBlackTree_destroy, RedBlackTree_traverse
  */
 
 /** 遍历回调用的累加器 */
@@ -775,7 +777,7 @@ static int g_traverse_sum;
  */
 static int traverse_sum_callback(struct rb_node *node, void *arg)
 {
-    struct my_data *d = rb_entry(node, struct my_data, node);
+    struct my_data *d = RedBlackTree_entry(node, struct my_data, node);
     (void)arg;
     g_traverse_sum += d->value;
     return 0;
@@ -787,7 +789,7 @@ static int traverse_sum_callback(struct rb_node *node, void *arg)
  */
 static int traverse_stop_callback(struct rb_node *node, void *arg)
 {
-    struct my_data *d = rb_entry(node, struct my_data, node);
+    struct my_data *d = RedBlackTree_entry(node, struct my_data, node);
     int *stop_val = (int *)arg;
     if (d->value == *stop_val) {
         return 1;  /* 停止遍历 */
@@ -799,76 +801,76 @@ static void test_batch_operations(void)
 {
     Debug_printx("========== Part 7: Batch Operations ==========");
 
-    /* rb_traverse: 中序遍历求和 */
+    /* RedBlackTree_traverse: 中序遍历求和 */
     {
-        DEFINE_RB_ROOT(root);
+        DEFINE_REDBLACKTREE_ROOT(root);
         struct my_data *d1 = create_data(10);
         struct my_data *d2 = create_data(20);
         struct my_data *d3 = create_data(30);
         struct my_data *d4 = create_data(40);
-        rb_insert(&root, &d1->node, my_cmp, NULL);
-        rb_insert(&root, &d2->node, my_cmp, NULL);
-        rb_insert(&root, &d3->node, my_cmp, NULL);
-        rb_insert(&root, &d4->node, my_cmp, NULL);
+        RedBlackTree_insert(&root, &d1->node, my_cmp, NULL);
+        RedBlackTree_insert(&root, &d2->node, my_cmp, NULL);
+        RedBlackTree_insert(&root, &d3->node, my_cmp, NULL);
+        RedBlackTree_insert(&root, &d4->node, my_cmp, NULL);
 
         g_traverse_sum = 0;
-        int ret = rb_traverse(&root, traverse_sum_callback, NULL);
-        TEST_ASSERT(ret == 0, "rb_traverse - returns 0",
+        int ret = RedBlackTree_traverse(&root, traverse_sum_callback, NULL);
+        TEST_ASSERT(ret == 0, "RedBlackTree_traverse - returns 0",
                     "traverse should complete successfully");
-        TEST_ASSERT(g_traverse_sum == 100, "rb_traverse - sum is 100",
+        TEST_ASSERT(g_traverse_sum == 100, "RedBlackTree_traverse - sum is 100",
                     "10+20+30+40 should be 100");
 
         free_all_nodes(&root);
     }
 
-    /* rb_traverse: 提前停止 */
+    /* RedBlackTree_traverse: 提前停止 */
     {
-        DEFINE_RB_ROOT(root);
+        DEFINE_REDBLACKTREE_ROOT(root);
         struct my_data *d1 = create_data(1);
         struct my_data *d2 = create_data(2);
         struct my_data *d3 = create_data(3);
-        rb_insert(&root, &d1->node, my_cmp, NULL);
-        rb_insert(&root, &d2->node, my_cmp, NULL);
-        rb_insert(&root, &d3->node, my_cmp, NULL);
+        RedBlackTree_insert(&root, &d1->node, my_cmp, NULL);
+        RedBlackTree_insert(&root, &d2->node, my_cmp, NULL);
+        RedBlackTree_insert(&root, &d3->node, my_cmp, NULL);
 
         int stop_at = 2;
-        int ret = rb_traverse(&root, traverse_stop_callback, &stop_at);
-        TEST_ASSERT(ret == 1, "rb_traverse stop - returns 1",
+        int ret = RedBlackTree_traverse(&root, traverse_stop_callback, &stop_at);
+        TEST_ASSERT(ret == 1, "RedBlackTree_traverse stop - returns 1",
                     "traverse should return callback value (1)");
 
         free_all_nodes(&root);
     }
 
-    /* rb_destroy: 销毁所有节点 */
+    /* RedBlackTree_destroy: 销毁所有节点 */
     {
-        DEFINE_RB_ROOT(root);
+        DEFINE_REDBLACKTREE_ROOT(root);
         int i;
         for (i = 0; i < 100; i++) {
             struct my_data *d = create_data(i);
-            rb_insert(&root, &d->node, my_cmp, NULL);
+            RedBlackTree_insert(&root, &d->node, my_cmp, NULL);
         }
-        TEST_ASSERT(rb_count(&root) == 100, "rb_destroy prep - 100 nodes",
+        TEST_ASSERT(RedBlackTree_count(&root) == 100, "RedBlackTree_destroy prep - 100 nodes",
                     "should have 100 nodes");
 
-        int ret = rb_destroy(&root, my_free_fn, NULL);
-        TEST_ASSERT(ret == 0, "rb_destroy - returns 0",
+        int ret = RedBlackTree_destroy(&root, my_free_fn, NULL);
+        TEST_ASSERT(ret == 0, "RedBlackTree_destroy - returns 0",
                     "destroy should succeed");
-        TEST_ASSERT(rb_empty(&root), "rb_destroy - tree empty",
+        TEST_ASSERT(RedBlackTree_empty(&root), "RedBlackTree_destroy - tree empty",
                     "tree should be empty after destroy");
-        TEST_ASSERT(rb_count(&root) == 0, "rb_destroy - count 0",
+        TEST_ASSERT(RedBlackTree_count(&root) == 0, "RedBlackTree_destroy - count 0",
                     "count should be 0 after destroy");
     }
 
-    /* rb_destroy: 不释放内存（free_fn 为 NULL） */
+    /* RedBlackTree_destroy: 不释放内存（free_fn 为 NULL） */
     {
-        DEFINE_RB_ROOT(root);
+        DEFINE_REDBLACKTREE_ROOT(root);
         struct my_data *d1 = create_data(10);
         struct my_data *d2 = create_data(20);
-        rb_insert(&root, &d1->node, my_cmp, NULL);
-        rb_insert(&root, &d2->node, my_cmp, NULL);
+        RedBlackTree_insert(&root, &d1->node, my_cmp, NULL);
+        RedBlackTree_insert(&root, &d2->node, my_cmp, NULL);
 
-        rb_destroy(&root, NULL, NULL);
-        TEST_ASSERT(rb_empty(&root), "rb_destroy(NULL free_fn) - tree empty",
+        RedBlackTree_destroy(&root, NULL, NULL);
+        TEST_ASSERT(RedBlackTree_empty(&root), "RedBlackTree_destroy(NULL free_fn) - tree empty",
                     "tree should be empty");
         /* 注意：未释放内存，需要手动释放 */
         free(d1);
@@ -894,7 +896,7 @@ static void test_comprehensive(void)
 {
     Debug_printx("========== Part 8: Comprehensive Test ==========");
 
-    DEFINE_RB_ROOT(root);
+    DEFINE_REDBLACKTREE_ROOT(root);
     const int N = 1000;
     struct my_data **items = (struct my_data **)malloc((unsigned int)N * sizeof(struct my_data *));
     int i;
@@ -904,14 +906,14 @@ static void test_comprehensive(void)
         items[i] = create_data(i);
     }
     for (i = 0; i < N; i++) {
-        int ret = rb_insert(&root, &items[i]->node, my_cmp, NULL);
+        int ret = RedBlackTree_insert(&root, &items[i]->node, my_cmp, NULL);
         if (ret != 0)
         {
             TEST_FAIL("comprehensive insert", "insert failed");
             goto cleanup_comprehensive;
         }
     }
-    TEST_ASSERT((int)rb_count(&root) == N, "comprehensive insert - count correct",
+    TEST_ASSERT((int)RedBlackTree_count(&root) == N, "comprehensive insert - count correct",
                 "count should match insert count");
 
     /* 验证中序遍历有序 */
@@ -920,8 +922,8 @@ static void test_comprehensive(void)
         int prev_val = -1;
         int count = 0;
         int ordered = 1;
-        rb_for_each(pos, &root) {
-            struct my_data *d = rb_entry(pos, struct my_data, node);
+        RedBlackTree_for_each(pos, &root) {
+            struct my_data *d = RedBlackTree_entry(pos, struct my_data, node);
             if (d->value <= prev_val) {
                 ordered = 0;
                 break;
@@ -940,7 +942,7 @@ static void test_comprehensive(void)
         int all_found = 1;
         for (i = 0; i < N; i++) {
             struct my_data key = { .value = i };
-            struct rb_node *found = rb_search(&root, &key.node, my_cmp, NULL);
+            struct rb_node *found = RedBlackTree_search(&root, &key.node, my_cmp, NULL);
             if (found == NULL) {
                 all_found = 0;
                 break;
@@ -954,10 +956,10 @@ static void test_comprehensive(void)
     {
         int deleted = 0;
         struct rb_node *pos, *n;
-        rb_for_each_safe(pos, n, &root) {
-            struct my_data *d = rb_entry(pos, struct my_data, node);
+        RedBlackTree_for_each_safe(pos, n, &root) {
+            struct my_data *d = RedBlackTree_entry(pos, struct my_data, node);
             if (d->value % 2 == 0) {
-                rb_delete(&root, pos);
+                RedBlackTree_delete(&root, pos);
                 items[d->value] = NULL;  /* 标记已删除 */
                 free(d);
                 deleted++;
@@ -965,7 +967,7 @@ static void test_comprehensive(void)
         }
         TEST_ASSERT(deleted == N / 2, "comprehensive delete half - correct count",
                     "should delete half of nodes");
-        TEST_ASSERT((int)rb_count(&root) == N / 2, "comprehensive - count after delete",
+        TEST_ASSERT((int)RedBlackTree_count(&root) == N / 2, "comprehensive - count after delete",
                     "remaining count should be half");
     }
 
@@ -973,8 +975,8 @@ static void test_comprehensive(void)
     {
         int all_odd = 1;
         struct rb_node *pos;
-        rb_for_each(pos, &root) {
-            struct my_data *d = rb_entry(pos, struct my_data, node);
+        RedBlackTree_for_each(pos, &root) {
+            struct my_data *d = RedBlackTree_entry(pos, struct my_data, node);
             if (d->value % 2 == 0) {
                 all_odd = 0;
                 break;
@@ -989,7 +991,7 @@ static void test_comprehensive(void)
         int none_found = 1;
         for (i = 0; i < N; i += 2) {
             struct my_data key = { .value = i };
-            struct rb_node *found = rb_search(&root, &key.node, my_cmp, NULL);
+            struct rb_node *found = RedBlackTree_search(&root, &key.node, my_cmp, NULL);
             if (found != NULL) {
                 none_found = 0;
                 break;
@@ -999,9 +1001,9 @@ static void test_comprehensive(void)
                     "deleted nodes should not be found");
     }
 
-    /* 使用 rb_destroy 清理剩余节点 */
-    rb_destroy(&root, my_free_fn, NULL);
-    TEST_ASSERT(rb_empty(&root), "comprehensive - empty after destroy",
+    /* 使用 RedBlackTree_destroy 清理剩余节点 */
+    RedBlackTree_destroy(&root, my_free_fn, NULL);
+    TEST_ASSERT(RedBlackTree_empty(&root), "comprehensive - empty after destroy",
                 "tree should be empty after destroy");
 
     /* 清理 items 数组中已删除的节点指针无需再释放 */
@@ -1011,7 +1013,7 @@ static void test_comprehensive(void)
     return;
 
 cleanup_comprehensive:
-    rb_destroy(&root, my_free_fn, NULL);
+    RedBlackTree_destroy(&root, my_free_fn, NULL);
     free(items);
     Debug_printx("---------- Part 8 Done (with errors) ----------\r\n");
 }
