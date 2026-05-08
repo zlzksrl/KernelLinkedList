@@ -5,8 +5,10 @@ CC = arm-linux-gnueabihf-gcc
 TARGET_Name        = KernelLinkedList
 ProgramVER         = 1.0.0
 USERNAME           = zlzksrl
+LIBFILE_PATH       = ~/zlzksrl/LinuxARM/PublicLibrary/LinuxARM_IMX6ULL
 
 # 安装路径
+INSTALL_PATH       = $(LIBFILE_PATH)/$(TARGET_Name)/
 INSTALLBOARD       = root@192.168.1.6:/usr/zlzksrl/app/$(TARGET_Name)/
 
 # 编译选项
@@ -31,7 +33,7 @@ MAKETIME      = $(shell date "+%G.%m.%d-%H.%M.%S")
 
 # ==============================================================================
 # 伪目标
-.PHONY: all clean install
+.PHONY: all clean install install_lib
 
 all: app
 	echo "PROJECT_MAKETIME $(USERNAME)-$(ProgramVER) at $(MAKETIME)" >  $(PROJECT_INFO)
@@ -60,3 +62,11 @@ clean:
 # 安装可执行文件
 install:app
 	scp $(TARGET) $(INSTALLBOARD)
+	# 安装库文件
+
+install_lib:
+	rm $(INSTALL_PATH) -rf
+	mkdir -p $(INSTALL_PATH)
+	mkdir -p $(INSTALL_PATH)include/
+	cp ../include/* $(INSTALL_PATH)include/
+	cp $(PROJECT_INFO) $(INSTALL_PATH)
