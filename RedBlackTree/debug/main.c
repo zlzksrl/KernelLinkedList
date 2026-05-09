@@ -139,8 +139,14 @@ static int my_cmp(struct rb_node *a, struct rb_node *b, void *arg)
     struct my_data *da = RedBlackTree_entry(a, struct my_data, node);
     struct my_data *db = RedBlackTree_entry(b, struct my_data, node);
     (void)arg;
-    if (da->value < db->value) return -1;
-    if (da->value > db->value) return 1;
+    if (da->value < db->value)
+    {
+        return -1;
+    }
+    if (da->value > db->value)
+    {
+        return 1;
+    }
     return 0;
 }
 
